@@ -1,49 +1,52 @@
+from scipy.ndimage import maximum_filter
 import numpy as np
-from tensorflow import keras
-from tensorflow.keras.preprocessing.image import load_img, img_to_array
-import os
 import matplotlib.pyplot as plt
+from tensorflow.keras.preprocessing.image import load_img, img_to_array
+from tensorflow.keras.models import load_model
 
-IMAGE_SIZE = 500
-MAX_POINTS = 500
+IMAGE_SIZE = 256
+MAX_POINTS = 100
+MODEL_PATH = './models/v3.h5' 
 
-model = keras.models.load_model('hair_point_counter_model.h5')
-
-def load_test_data(test_dataset_dir):
-    images = []
-    filenames = []
+def predict_heatmap(image_path):
+    img = load_img(image_path, target_size=(IMAGE_SIZE, IMAGE_SIZE))
+    img_array = img_to_array(img) / 255.0
+    img_array = np.expand_dims(img_array, axis=0)
     
-    for filename in os.listdir(test_dataset_dir):
-        if filename.endswith('.png'):
-            img_path = os.path.join(test_dataset_dir, filename)
-            img = load_img(img_path, target_size=(IMAGE_SIZE, IMAGE_SIZE))
-            img_array = img_to_array(img) / 255.0
-            images.append(img_array)
-            filenames.append(filename)
+    predicted_heatmap = model.predict(img_array)[0, :, :, 0]  
     
-    return np.array(images), filenames
+    print(predicted_heatmap.shape)
+    
+    return predicted_heatmap
 
-X_test, test_filenames = load_test_data('./dataset') 
+def get_predicted_points(heatmaps, threshold=0.02):
+    predicted_points = []
+    for heatmap in heatmaps:
+        filtered_heatmap = maximum_filter(heatmap, size=3)
+        peaks = (heatmap == filtered_heatmap) & (heatmap > threshold)
+        y_indices, x_indices = np.where(peaks)
+        points = np.vstack((x_indices, y_indices)).T  
+        predicted_points.append(points)
+    return predicted_points
 
-predictions = model.predict(X_test)
+def visualize_prediction(image_path):
+    predicted_heatmap = predict_heatmap(image_path)
+    predicted_points = get_predicted_points([predicted_heatmap])[0]
+    
+    img = load_img(image_path, target_size=(IMAGE_SIZE, IMAGE_SIZE))
+    img_array = img_to_array(img) / 255.0
+    
+    plt.figure(figsize=(8, 8))
+    plt.imshow(img_array)
+    plt.imshow(predicted_heatmap, cmap='jet', alpha=0.5)
+    if len(predicted_points) > 0:
+        plt.scatter(predicted_points[:, 0], predicted_points[:, 1], color='red', s=20)
+    plt.title('Heatmap Predito e Pontos Detectados')
+    plt.axis('off')
+    plt.show()
 
-def extract_points(predictions): 
-    points = []
-    for pred in predictions:
-        point_pairs = pred[:MAX_POINTS * 2].reshape(-1, 2)  
-        points.append(point_pairs)
-    return points
+model = load_model(MODEL_PATH, compile=False)
+    
+visualize_prediction('./dataset/0a3adba7-8f36-439b-9a0c-f505561c4b1a.png')
 
-predicted_points = extract_points(predictions)
 
-random_index = np.random.randint(len(X_test))
-random_image = X_test[random_index]
-predicted_points_random = predicted_points[random_index]
-filename_random = test_filenames[random_index]
-
-plt.figure(figsize=(8, 8))
-plt.imshow(random_image)
-plt.scatter(predicted_points_random[:, 0] * IMAGE_SIZE, predicted_points_random[:, 1] * IMAGE_SIZE, color='red', s=10)  # Redimensionando os pontos
-plt.title(f'Predicted points for {filename_random}')
-plt.axis('off')
-plt.show()

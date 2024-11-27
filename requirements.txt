@@ -1,2 +1,4 @@
 tensorflow
 pillow
+scipy
+matplotlib
