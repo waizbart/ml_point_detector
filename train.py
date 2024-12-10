@@ -136,32 +136,11 @@ model = create_heatmap_model()
 
 optimizer = keras.optimizers.Adam(learning_rate=0.0001)
 
-def dice_coefficient(y_true, y_pred, smooth=1):
-    y_true_f = K.flatten(y_true)
-    y_pred_f = K.flatten(y_pred)
-    intersection = K.sum(y_true_f * y_pred_f)
-    return (2. * intersection + smooth) / (K.sum(y_true_f) + K.sum(y_pred_f) + smooth)
-
-def dice_loss(y_true, y_pred, smooth=1):
-    y_true_f = K.flatten(y_true)
-    y_pred_f = K.flatten(y_pred)
-    
-    intersection = K.sum(y_true_f * y_pred_f)
-    numerator = 2. * intersection + smooth
-    denominator = K.sum(y_true_f) + K.sum(y_pred_f) + smooth
-    loss = 1 - (numerator / denominator)
-    return loss
-
-def combined_loss(y_true, y_pred):
-    dice = dice_loss(y_true, y_pred)
-    mse = K.mean(K.square(y_true - y_pred))
-    return dice + mse
-
-model.compile(optimizer=optimizer, loss=combined_loss, metrics=['mae', dice_coefficient, combined_loss])
+model.compile(optimizer=optimizer, loss='mae', metrics=['mae'])
 
 from tensorflow.keras.callbacks import EarlyStopping
 
-early_stop = EarlyStopping(monitor='val_combined_loss', mode='min', patience=50, restore_best_weights=True)
+early_stop = EarlyStopping(monitor='val_mae', patience=50, restore_best_weights=True)
 
 history = model.fit(
     X,
@@ -172,4 +151,4 @@ history = model.fit(
     callbacks=[early_stop]
 )
 
-model.save('./models/v5.h5')
+model.save('./models/v7.h5')
