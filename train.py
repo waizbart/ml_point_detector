@@ -1,18 +1,14 @@
 from tensorflow.keras.callbacks import EarlyStopping
 import os
-from matplotlib import pyplot as plt
 import numpy as np
 import tensorflow as tf
 from tensorflow import keras
 from tensorflow.keras.preprocessing.image import load_img, img_to_array
-from tensorflow.keras import backend as K
 from sklearn.model_selection import train_test_split
 
-# Constants
 MAX_POINTS = 100
-IMAGE_SIZE = 496
+IMAGE_SIZE = 256
 SIGMA = 2
-
 
 def load_data(dataset_dir):
     images = []
@@ -164,7 +160,7 @@ val_dataset = (
 
 history = model.fit(
     train_dataset,
-    epochs=100,
+    epochs=1000,
     validation_data=val_dataset,
     callbacks=[early_stop]
 )
