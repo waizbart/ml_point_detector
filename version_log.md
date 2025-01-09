@@ -1,5 +1,5 @@
 # V7
-    Data augmentation 
+    Increased dataset 
 
 # V6
     New database

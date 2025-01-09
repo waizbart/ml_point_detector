@@ -80,19 +80,19 @@ def create_heatmap_model(image_size=IMAGE_SIZE):
     x = keras.layers.Conv2D(32, (3, 3), padding='same')(inputs)
     x = keras.layers.BatchNormalization()(x)
     x = keras.layers.LeakyReLU(alpha=0.1)(x)
-    x = keras.layers.Dropout(0.2)(x)
+    x = keras.layers.Dropout(0.3)(x)
     x = keras.layers.MaxPooling2D((2, 2))(x)
 
     x = keras.layers.Conv2D(64, (3, 3), padding='same')(x)
     x = keras.layers.BatchNormalization()(x)
     x = keras.layers.LeakyReLU(alpha=0.1)(x)
-    x = keras.layers.Dropout(0.2)(x)
+    x = keras.layers.Dropout(0.3)(x)
     x = keras.layers.MaxPooling2D((2, 2))(x)
 
     x = keras.layers.Conv2D(128, (3, 3), padding='same')(x)
     x = keras.layers.BatchNormalization()(x)
     x = keras.layers.LeakyReLU(alpha=0.1)(x)
-    x = keras.layers.Dropout(0.2)(x)
+    x = keras.layers.Dropout(0.3)(x)
     x = keras.layers.MaxPooling2D((2, 2))(x)
 
     x = keras.layers.Conv2DTranspose(128, (3, 3), strides=2, padding='same')(x)
@@ -120,25 +120,11 @@ optimizer = keras.optimizers.Adam(learning_rate=0.0001)
 
 model.compile(optimizer=optimizer, loss='mae', metrics=['mae'])
 
-
 early_stop = EarlyStopping(
-    monitor='val_mae', patience=50, restore_best_weights=True)
+    monitor='val_mae', patience=10, restore_best_weights=True)
 
 X_train, X_val, y_train, y_val = train_test_split(
     X, y_heatmaps, test_size=0.2, random_state=42)
-
-
-def augment(image, heatmap):
-    if tf.random.uniform(()) > 0.5:
-        image = tf.image.flip_left_right(image)
-        heatmap = tf.image.flip_left_right(heatmap)
-
-    if tf.random.uniform(()) > 0.5:
-        image = tf.image.flip_up_down(image)
-        heatmap = tf.image.flip_up_down(heatmap)
-
-    return image, heatmap
-
 
 batch_size = 8
 
@@ -146,7 +132,6 @@ train_dataset = tf.data.Dataset.from_tensor_slices((X_train, y_train))
 train_dataset = (
     train_dataset
     .shuffle(len(X_train))
-    .map(augment, num_parallel_calls=tf.data.AUTOTUNE)
     .batch(batch_size)
     .prefetch(tf.data.AUTOTUNE)
 )
