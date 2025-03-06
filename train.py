@@ -1,4 +1,5 @@
 from tensorflow.keras.callbacks import EarlyStopping
+from tensorflow.keras.models import load_model
 import os
 import numpy as np
 import tensorflow as tf
@@ -9,6 +10,7 @@ from sklearn.model_selection import train_test_split
 MAX_POINTS = 100
 IMAGE_SIZE = 256
 SIGMA = 2
+
 
 def load_data(dataset_dir):
     images = []
@@ -114,14 +116,23 @@ def create_heatmap_model(image_size=IMAGE_SIZE):
     return model
 
 
-model = create_heatmap_model()
+from_pretrained_model = True
+
+if from_pretrained_model:
+    model = load_model('./models/v7.h5', compile=False)
+else:
+    model = create_heatmap_model()
 
 optimizer = keras.optimizers.Adam(learning_rate=0.0001)
-
 model.compile(optimizer=optimizer, loss='mae', metrics=['mae'])
 
 early_stop = EarlyStopping(
-    monitor='val_mae', patience=10, restore_best_weights=True)
+    monitor='val_mae', patience=30, restore_best_weights=True)
+
+reduce_lr = keras.callbacks.ReduceLROnPlateau(monitor='val_mae',
+                                              factor=0.5,
+                                              patience=5,
+                                              min_lr=1e-7)
 
 X_train, X_val, y_train, y_val = train_test_split(
     X, y_heatmaps, test_size=0.2, random_state=42)
@@ -147,7 +158,7 @@ history = model.fit(
     train_dataset,
     epochs=1000,
     validation_data=val_dataset,
-    callbacks=[early_stop]
+    callbacks=[early_stop, reduce_lr]
 )
 
-model.save('./models/v7.h5')
+model.save('./models/v8.h5')
