@@ -9,3 +9,5 @@ for filename in os.listdir(dataset_dir):
         
         if not os.path.isfile(annotation_path):
             os.remove(img_path)
+            
+            
